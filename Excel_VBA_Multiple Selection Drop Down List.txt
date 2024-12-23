@@ -1,0 +1,59 @@
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Dim OldVal As String
+    Dim NewVal As String
+    Dim Delimiter As String
+    Dim rngDV As Range
+
+    ' Only proceed if one cell changed
+    If Target.CountLarge > 1 Then Exit Sub
+
+    ' Apply the code only to columns C (3) and E (5), Modify this line of code if you wanna use it in your excel sheet
+    If Target.Column = 3 Or Target.Column = 5 Then
+        Delimiter = ", "
+
+        On Error Resume Next
+        Set rngDV = Target.SpecialCells(xlCellTypeAllValidation)
+        On Error GoTo 0
+
+        ' If the changed cell doesn't have data validation, Notify the user and exit
+        If rngDV Is Nothing Then
+            MsgBox "Multiple selection is not supported in this cell as it does not have a data validation drop-down.", vbExclamation, "No Data Validation"
+            Exit Sub
+        End If
+
+        Application.EnableEvents = False
+
+        ' Store the new value
+        NewVal = Target.Value
+
+        ' Undo the change to get the old value
+        Application.Undo
+        OldVal = Target.Value
+
+        ' Check if user is trying to clear the cell
+        If NewVal = "" Then
+            ' Allow clearing the cell
+            Target.ClearContents
+        Else
+            ' Restore the old value
+            Target.Value = OldVal
+
+            ' Combine old and new values if both are not empty
+            If OldVal <> "" And NewVal <> "" Then
+                ' Check for duplicates
+                If InStr(1, OldVal, NewVal, vbTextCompare) = 0 Then
+                    Target.Value = OldVal & Delimiter & NewVal
+                Else
+                    ' If it's a duplicate, just revert to old value and show a message
+                    Target.Value = OldVal
+                    MsgBox "The item '" & NewVal & "' is already included in the cell.", vbExclamation, "Duplicate Item"
+                End If
+            ElseIf OldVal = "" And NewVal <> "" Then
+                ' If old was empty, just assign the new value
+                Target.Value = NewVal
+            End If
+        End If
+
+        Application.EnableEvents = True
+    End If
+End Sub
